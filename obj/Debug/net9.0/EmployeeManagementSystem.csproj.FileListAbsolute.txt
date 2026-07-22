@@ -1,0 +1,14 @@
+D:\training\Employment Managment System\bin\Debug\net9.0\EmployeeManagementSystem.exe
+D:\training\Employment Managment System\bin\Debug\net9.0\EmployeeManagementSystem.deps.json
+D:\training\Employment Managment System\bin\Debug\net9.0\EmployeeManagementSystem.runtimeconfig.json
+D:\training\Employment Managment System\bin\Debug\net9.0\EmployeeManagementSystem.dll
+D:\training\Employment Managment System\bin\Debug\net9.0\EmployeeManagementSystem.pdb
+D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.GeneratedMSBuildEditorConfig.editorconfig
+D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.AssemblyInfoInputs.cache
+D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.AssemblyInfo.cs
+D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.csproj.CoreCompileInputs.cache
+D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.dll
+D:\training\Employment Managment System\obj\Debug\net9.0\refint\EmployeeManagementSystem.dll
+D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.pdb
+D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.genruntimeconfig.cache
+D:\training\Employment Managment System\obj\Debug\net9.0\ref\EmployeeManagementSystem.dll
