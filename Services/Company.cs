@@ -26,7 +26,7 @@ namespace EmploymentManagmentSystem.Services
         public HashSet<string> UniqueSkills { get; private set; }
         
         private Dictionary<int, Employee> _employeeLookup;
-        private Stack<Action> _undoStack;
+        private Stack<string> _undoStack;  
         
         private int _nextEmployeeId;
         private int _nextDepartmentId;
@@ -39,8 +39,7 @@ namespace EmploymentManagmentSystem.Services
             ActionHistory = new Stack<string>();
             UniqueSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             _employeeLookup = new Dictionary<int, Employee>();
-            _undoStack = new Stack<Action>();
-            
+            _undoStack = new Stack<string>();  
             _nextEmployeeId = 1;
             _nextDepartmentId = 1;
         }
@@ -91,10 +90,7 @@ namespace EmploymentManagmentSystem.Services
             
             LogAction($"Added new department: {name} (Id: {id})");
             
-            _undoStack.Push(() => {
-                Departments.Remove(id);
-                _nextDepartmentId--;
-            });
+            _undoStack.Push($"Undo: Remove department '{name}' (Id: {id})");
             
             ConsoleHelper.PrintSuccess($"Department '{name}' added successfully with Id: {id}");
         }
@@ -220,10 +216,8 @@ namespace EmploymentManagmentSystem.Services
             
             LogAction($"Added {firstName} {lastName} to Onboarding queue (Id: {id})");
             
-            _undoStack.Push(() => {
-                _employeeLookup.Remove(id);
-                _nextEmployeeId--;
-            });
+           
+            _undoStack.Push($"Undo: Remove employee '{firstName} {lastName}' (Id: {id}) from Onboarding queue");
             
             ConsoleHelper.PrintSuccess($"{firstName} {lastName} added to Onboarding queue successfully.");
         }
@@ -366,9 +360,8 @@ namespace EmploymentManagmentSystem.Services
             manager.TeamMembers.Add(teamMember);
             LogAction($"Added {teamMember.FirstName} {teamMember.LastName} to {manager.FirstName} {manager.LastName}'s team");
             
-            _undoStack.Push(() => {
-                manager.TeamMembers.Remove(teamMember);
-            });
+            
+            _undoStack.Push($"Undo: Remove {teamMember.FirstName} {teamMember.LastName} from {manager.FirstName} {manager.LastName}'s team");
             
             ConsoleHelper.PrintSuccess("Team member added successfully.");
         }
@@ -694,11 +687,16 @@ namespace EmploymentManagmentSystem.Services
                 return;
             }
 
-            Action undoAction = _undoStack.Pop();
-            undoAction.Invoke();
             
-            LogAction("Undid last action");
-            ConsoleHelper.PrintSuccess("Last action undone successfully.");
+            string lastAction = _undoStack.Pop();
+            
+          
+            LogAction($"Undid action: {lastAction}");
+            
+            
+            ConsoleHelper.PrintWarning($" Undo requested: {lastAction}");
+            ConsoleHelper.PrintInfo("Note: This is a display-only undo. Actual data reversal is not implemented.");
+            ConsoleHelper.PrintSuccess("Last action marked as undone.");
         }
         #endregion
 
