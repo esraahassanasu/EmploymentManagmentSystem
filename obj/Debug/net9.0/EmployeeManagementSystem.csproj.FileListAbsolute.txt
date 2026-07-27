@@ -12,3 +12,4 @@ D:\training\Employment Managment System\obj\Debug\net9.0\refint\EmployeeManageme
 D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.pdb
 D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.genruntimeconfig.cache
 D:\training\Employment Managment System\obj\Debug\net9.0\ref\EmployeeManagementSystem.dll
+D:\training\Employment Managment System\obj\Debug\net9.0\EmployeeManagementSystem.sourcelink.json

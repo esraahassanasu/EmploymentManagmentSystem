@@ -356,7 +356,16 @@ namespace EmploymentManagmentSystem.Services
                 ConsoleHelper.PrintError(ERROR_ALREADY_IN_TEAM);
                 return;
             }
-
+            if (manager.DepartmentId != teamMember.DepartmentId)
+            {
+                Console.WriteLine("Employee and manager must belong to the same department.");
+                return;
+            }
+            if (manager.Id == teamMember.Id)
+            {
+                Console.WriteLine("A manager cannot add themselves as a team member.");
+                return;
+            }
             manager.TeamMembers.Add(teamMember);
             LogAction($"Added {teamMember.FirstName} {teamMember.LastName} to {manager.FirstName} {manager.LastName}'s team");
             
