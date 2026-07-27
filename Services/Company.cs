@@ -471,6 +471,7 @@ namespace EmploymentManagmentSystem.Services
             UniqueSkills.Add(normalizedSkill);
             LogAction($"Registered skill '{normalizedSkill}' for {emp.FirstName} {emp.LastName}");
             ConsoleHelper.PrintSuccess($"Skill '{normalizedSkill}' registered successfully.");
+            
         }
 
         public void DisplayUniqueSkills()
@@ -728,19 +729,19 @@ namespace EmploymentManagmentSystem.Services
             AddDepartment("Finance", "Financial Management Department");
             AddDepartment("Marketing", "Marketing and Sales Department");
             
-            List<string> managerSkills = new List<string> { "C#", "ASP.NET", "SQL Server", "Leadership" };
+            List<string> managerSkills = new List<string> { "c#", "asp.net", "sql server", "leadership" };
             AddToOnboarding("Ahmed", "Ali", "ahmed.ali@company.com", "0101234567", 
                 new DateTime(1990, 5, 15), 1, 15000, managerSkills, isManager: true);
             
-            List<string> emp1Skills = new List<string> { "Communication", "Recruitment", "Training" };
+            List<string> emp1Skills = new List<string> { "communication", "research", "recruitment", "training" };
             AddToOnboarding("Mona", "Said", "mona.said@company.com", "0109876543", 
                 new DateTime(1992, 8, 20), 2, 8000, emp1Skills);
             
-            List<string> emp2Skills = new List<string> { "Accounting", "Excel", "Financial Analysis" };
+            List<string> emp2Skills = new List<string> { "accounting", "excel", "financial analysis" };
             AddToOnboarding("Omar", "Hassan", "omar.hassan@company.com", "0105555555", 
                 new DateTime(1988, 3, 10), 3, 9000, emp2Skills);
             
-            List<string> emp3Skills = new List<string> { "C#", "JavaScript", "React" };
+            List<string> emp3Skills = new List<string> { "c#", "javascript", "react" };
             AddToOnboarding("Sara", "Mohamed", "sara.mohamed@company.com", "0107777777", 
                 new DateTime(1995, 11, 25), 1, 7500, emp3Skills);
             
@@ -749,11 +750,10 @@ namespace EmploymentManagmentSystem.Services
             AddTeamMember(1, 2);
             AddTeamMember(1, 4);
 
-            RegisterSkill(1, "Project Management");
-            RegisterSkill(2, "HR Management");
-            RegisterSkill(3, "Budget Planning");
-            RegisterSkill(4, "c#");
-            RegisterSkill(1, "leadership");
+            RegisterSkill(1, "project management");
+            RegisterSkill(2, "hr management");
+            RegisterSkill(3, "budget planning");
+            RegisterSkill(4, "leadership");
             
             ConsoleHelper.PrintSuccess("Seed data loaded successfully!");
         }
