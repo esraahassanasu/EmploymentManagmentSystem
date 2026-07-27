@@ -61,6 +61,17 @@ namespace EmploymentManagmentSystem.Services
         {
             return Departments.ContainsKey(departmentId);
         }
+        private bool DepartmentExistsName(string departmentName)
+        {
+            foreach (var dept in Departments.Values)
+            {
+                if (dept.Name.Equals(departmentName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         private string NormalizeSkill(string skill)
         {
@@ -83,15 +94,16 @@ namespace EmploymentManagmentSystem.Services
                 ConsoleHelper.PrintError("Department name cannot be empty!");
                 return;
             }
-
+            if(DepartmentExistsName(name)) 
+            {
+                ConsoleHelper.PrintError("Department name already exists!");
+                return;
+            }
             int id = _nextDepartmentId++;
             var department = new Department(id, name, description);
             Departments.Add(id, department);
-            
             LogAction($"Added new department: {name} (Id: {id})");
-            
             _undoStack.Push($"Undo: Remove department '{name}' (Id: {id})");
-            
             ConsoleHelper.PrintSuccess($"Department '{name}' added successfully with Id: {id}");
         }
 
@@ -450,14 +462,13 @@ namespace EmploymentManagmentSystem.Services
             }
 
             string normalizedSkill = NormalizeSkill(skill);
-            
-            if (!emp.Skills.Contains(normalizedSkill))
+            if (emp.Skills.Contains(normalizedSkill))
             {
-                emp.Skills.Add(normalizedSkill);
+                ConsoleHelper.PrintError($"Employee already has the skill '{normalizedSkill}' registered.");
+                return;
             }
-            
+            emp.Skills.Add(normalizedSkill);
             UniqueSkills.Add(normalizedSkill);
-            
             LogAction($"Registered skill '{normalizedSkill}' for {emp.FirstName} {emp.LastName}");
             ConsoleHelper.PrintSuccess($"Skill '{normalizedSkill}' registered successfully.");
         }
