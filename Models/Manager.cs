@@ -12,9 +12,9 @@ namespace EmploymentManagmentSystem.Models
         }
         public Manager(int id, string firstName, string lastName, string email, 
             string phoneNumber, DateTime dateOfBirth, DateTime hireDate, 
-            int departmentId, decimal salary, List<string> skills)
+            int departmentId, decimal salary)
             : base(id, firstName, lastName, email, phoneNumber, dateOfBirth, 
-                   hireDate, departmentId, salary, skills)
+                   hireDate, departmentId, salary)
         {
             TeamMembers = new List<Employee>();
         }

@@ -22,7 +22,7 @@ public class Employee
         
     }
 
-    public  Employee(int id, string firstName, string lastName, string email, string phoneNumber, DateTime dateOfBirth, DateTime hireDate, int departmentId, decimal salary, List<string> skills)
+    public  Employee(int id, string firstName, string lastName, string email, string phoneNumber, DateTime dateOfBirth, DateTime hireDate, int departmentId, decimal salary)
     {
         this.Id = id;
         this.FirstName = firstName;
@@ -34,7 +34,7 @@ public class Employee
         this.Status = EmployeeStatus.Pending;
         this.DepartmentId = departmentId;
         this.Salary = salary;
-        this.Skills = skills?? new List<string>();
+        this.Skills = new List<string>();  
     }
 }
 }

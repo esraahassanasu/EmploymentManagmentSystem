@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using EmploymentManagmentSystem.Services;
 using EmploymentManagmentSystem.Models;
+using EmploymentManagmentSystem.Helpers;
 
 namespace EmploymentManagmentSystem
 {
@@ -10,14 +11,18 @@ namespace EmploymentManagmentSystem
         static void Main(string[] args)
         {
             Company company = new Company();
-            company.SeedData();
+            
+            // Subscribe to Events
+            company.EmployeeOnboarded += OnEmployeeOnboarded;
+            company.EmployeePromoted += OnEmployeePromoted;
 
+            company.SeedData();
             bool exit = false;
 
             do
             {
                 Console.Clear();
-                ConsoleHelper.PrintMenuHeader("Employee Management System");
+                ConsoleHelper.PrintMenuHeader("Employee Management System (Advanced)");
                 
                 ConsoleHelper.PrintMenuOption("1", "Add New Department");
                 ConsoleHelper.PrintMenuOption("2", "Add Employee to Onboarding");
@@ -40,20 +45,20 @@ namespace EmploymentManagmentSystem
                 ConsoleHelper.PrintMenuOption("19", "Display All Departments Budget");
                 ConsoleHelper.PrintMenuOption("20", "Display Company Statistics");
                 ConsoleHelper.PrintMenuOption("21", "Display Action History");
-                ConsoleHelper.PrintMenuOption("22", "Undo Last Action");
+                ConsoleHelper.PrintMenuOption("22", "Filter: Managers Only (Lambda)");
+                ConsoleHelper.PrintMenuOption("23", "Filter: Salary > 10000 (Lambda)");
+                ConsoleHelper.PrintMenuOption("24", "Promote Employee to Manager");
                 ConsoleHelper.PrintMenuOption("0", "Exit");
 
                 ConsoleHelper.PrintSeparator();
-                string choice = Validation.GetValidMenuChoice("Select an option: ", 
-                    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", 
-                    "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22");
+                string choice = Console.ReadLine();
 
                 switch (choice)
                 {
                     case "1":
                         string deptName = Validation.GetValidString("Enter department name: ");
                         string deptDesc = Validation.GetValidString("Enter department description: ");
-                        company.AddDepartment(deptName, deptDesc);
+                        PrintResult(company.AddDepartment(deptName, deptDesc));
                         ConsoleHelper.Pause();
                         break;
 
@@ -77,12 +82,12 @@ namespace EmploymentManagmentSystem
                         }
                         
                         bool isManager = Validation.GetYesNoResponse("Is this employee a manager? (Y/N): ");
-                        company.AddToOnboarding(firstName, lastName, email, phone, dob, deptId, salary, skills, isManager);
+                        PrintResult(company.AddToOnboarding(firstName, lastName, email, phone, dob, deptId, salary, skills, isManager));
                         ConsoleHelper.Pause();
                         break;
 
                     case "3":
-                        company.ProcessOnboarding();
+                        PrintResult(company.ProcessOnboarding());
                         ConsoleHelper.Pause();
                         break;
 
@@ -95,7 +100,7 @@ namespace EmploymentManagmentSystem
                         company.DisplayAllEmployees();
                         int mgrId = Validation.GetValidPositiveInt("Enter Manager ID: ");
                         int empId = Validation.GetValidPositiveInt("Enter Employee ID to add to team: ");
-                        company.AddTeamMember(mgrId, empId);
+                        PrintResult(company.AddTeamMember(mgrId, empId));
                         ConsoleHelper.Pause();
                         break;
 
@@ -103,7 +108,7 @@ namespace EmploymentManagmentSystem
                         company.DisplayAllEmployees();
                         int skillEmpId = Validation.GetValidPositiveInt("Enter Employee ID: ");
                         string newSkill = Validation.GetValidString("Enter skill to add: ");
-                        company.RegisterSkill(skillEmpId, newSkill);
+                        PrintResult(company.RegisterSkill(skillEmpId, newSkill));
                         ConsoleHelper.Pause();
                         break;
 
@@ -212,15 +217,25 @@ namespace EmploymentManagmentSystem
                         break;
 
                     case "22":
-                        bool confirmUndo = Validation.GetYesNoResponse("Are you sure you want to undo the last action? (Y/N): ");
-                        if (confirmUndo)
-                        {
-                            company.UndoLastAction();
-                        }
-                        else
-                        {
-                            ConsoleHelper.PrintInfo("Undo cancelled.");
-                        }
+                        ConsoleHelper.PrintHeader("Managers Only (Using Lambda)");
+                        List<Employee> managers = company.FilterEmployees(e => e is Manager);
+                        foreach (var m in managers)
+                            Console.WriteLine($"- {m.FirstName} {m.LastName}");
+                        ConsoleHelper.Pause();
+                        break;
+
+                    case "23":
+                        ConsoleHelper.PrintHeader("Salary > 10000 (Using Lambda)");
+                        List<Employee> highEarners = company.FilterEmployees(e => e.Salary > 10000);
+                        foreach (var e in highEarners)
+                            Console.WriteLine($"- {e.FirstName} {e.LastName} ({e.Salary:C})");
+                        ConsoleHelper.Pause();
+                        break;
+
+                    case "24":
+                        company.DisplayAllEmployees();
+                        int promoteId = Validation.GetValidPositiveInt("Enter Employee ID to promote: ");
+                        PrintResult(company.PromoteToManager(promoteId));
                         ConsoleHelper.Pause();
                         break;
 
@@ -228,9 +243,34 @@ namespace EmploymentManagmentSystem
                         exit = true;
                         ConsoleHelper.PrintSuccess("Thank you for using the Employee Management System. Goodbye!");
                         break;
+
+                    default:
+                        ConsoleHelper.PrintError("Invalid option. Please try again.");
+                        ConsoleHelper.Pause();
+                        break;
                 }
 
             } while (!exit);
+        }
+
+        // Event Subscribers
+        private static void OnEmployeeOnboarded(object sender, EmployeeEventArgs e)
+        {
+            ConsoleHelper.PrintWarning($"[EVENT] Welcome aboard, {e.Employee.FirstName}! (Onboarded at {e.EventTime:HH:mm:ss})");
+        }
+
+        private static void OnEmployeePromoted(object sender, EmployeeEventArgs e)
+        {
+            ConsoleHelper.PrintWarning($"[EVENT] Congratulations to {e.Employee.FirstName} on the promotion to Manager! (At {e.EventTime:HH:mm:ss})");
+        }
+
+        // Helper to print Result<T>
+        private static void PrintResult<T>(Result<T> result)
+        {
+            if (result.IsSuccess)
+                ConsoleHelper.PrintSuccess(result.Message);
+            else
+                ConsoleHelper.PrintError(result.Message);
         }
     }
 }
