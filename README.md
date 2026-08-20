@@ -68,16 +68,39 @@ This project is an advanced employee management console application that simulat
 
 ## Project Structure
 
-- **Models/**: Core domain models
-  - `Employee.cs` - Base employee class
-  - `Manager.cs` - Manager class inheriting from Employee with team management
-  - `Department.cs` - Department information
-  - `EmployeeStatus.cs` - Enum for employee status (Pending, Active)
-  - `EmployeeEventArgs.cs` - Event arguments for employee events
-  - `EmployeeFilter.cs` - Delegate for custom employee filtering
-  - `Results.cs` - Operation result wrapper
-  
-- **Services/**: Business logic
+```
+EmployeeManagementSystem/
+├── Models/
+│   ├── Employee.cs
+│   ├── Manager.cs
+│   ├── Department.cs
+│   ├── EmployeeStatus.cs
+│   ├── LeaveRequest.cs
+│   └── IHasId.cs (interface for generic search)
+├── Common/
+│   └── Result.cs (Generic result wrapper for operations)
+├── Delegates/
+│   ├── EmployeeFilter.cs (Delegate for custom filtering)
+│   └── EmployeeComparer.cs (Delegate for custom sorting)
+├── Events/
+│   ├── EmployeeEventArgs.cs
+│   └── BudgetAlertEventArgs.cs
+├── Services/
+│   └── Company.cs (Main business logic)
+├── Helpers/
+│   ├── Validation.cs (Input validation)
+│   └── ConsoleHelper.cs (Console formatting)
+├── Program.cs (Entry point and menu)
+└── README.md
+```
+
+### Key Design Improvements
+- **Result<T> Pattern**: Generic result wrapper for consistent error handling
+- **Delegate-based Filtering & Sorting**: Flexible filtering and sorting using custom delegates
+- **Event-driven Architecture**: Decoupled components with event notifications
+- **Namespace Organization**: Clear separation of concerns with dedicated folders for Common, Delegates, and Events
+- **Duplicate Prevention**: Skill registration now prevents duplicate entries per employee
+- **Department Validation**: Manager-employee team assignments now require same department membership
   - `Company.cs` - Main service containing all business operations and event publishers
   
 - **Helpers/**: Utility functions
@@ -152,6 +175,26 @@ The system publishes four key events:
 - **BudgetExceeded**: Logged when a department exceeds its budget threshold
 
 Events are subscribed in Program.cs and logged to the console for real-time tracking. Users can dynamically toggle skill event subscriptions at runtime to control event notification behavior.
+
+## Business Logic & Validation Rules
+
+### Skill Registration
+- Employees cannot have duplicate skills
+- Skill names are normalized (trimmed and lowercased) for comparison
+- Examples: "C#", "c#", " C# " are all treated as the same skill
+- Duplicate registration attempts return a failure Result with appropriate error message
+- Company skill set is maintained using a HashSet to ensure uniqueness
+
+### Manager Team Assignment (AddTeamMember)
+Team member assignments follow this validation sequence:
+1. **Manager exists**: Manager ID must refer to an existing employee
+2. **Manager role**: Selected employee must actually be a Manager type
+3. **Team member exists**: Employee ID must refer to an existing employee
+4. **Self-management prevention**: Manager cannot add themselves to their own team
+5. **Department matching**: Manager and employee must belong to the same department
+6. **No duplicates**: Employee must not already be in manager's team
+
+All validations must pass before team member is added and action is logged.
 
 ## License
 

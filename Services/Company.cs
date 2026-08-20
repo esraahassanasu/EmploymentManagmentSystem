@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using EmploymentManagmentSystem.Models;
+using EmploymentManagmentSystem.Common;
+using EmploymentManagmentSystem.Delegates;
+using EmploymentManagmentSystem.Events;
 using EmploymentManagmentSystem.Helpers;
 
 namespace EmploymentManagmentSystem.Services
@@ -203,14 +206,24 @@ namespace EmploymentManagmentSystem.Services
                 return Result<string>.Failure("Manager not found!");
             }
 
+            if (!(managerEmp is Manager manager))
+            {
+                return Result<string>.Failure("Selected employee is not a manager!");
+            }
+
             if (!TryGetEmployee(employeeId, out Employee teamMember))
             {
                 return Result<string>.Failure("Team member not found!");
             }
 
-            if (!(managerEmp is Manager manager))
+            if (manager.Id == teamMember.Id)
             {
-                return Result<string>.Failure("Selected employee is not a manager!");
+                return Result<string>.Failure("A manager cannot manage themselves.");
+            }
+
+            if (manager.DepartmentId != teamMember.DepartmentId)
+            {
+                return Result<string>.Failure("Manager and employee must belong to the same department.");
             }
 
             if (manager.TeamMembers.Contains(teamMember))
@@ -236,20 +249,26 @@ namespace EmploymentManagmentSystem.Services
             }
 
             string normalizedSkill = skill.Trim().ToLower();
-            bool isNewToCompany = UniqueSkills.Add(normalizedSkill);
 
-            if (!emp.Skills.Contains(normalizedSkill))
+            // Check if employee already has this skill
+            if (emp.Skills.Contains(normalizedSkill))
             {
-                emp.Skills.Add(normalizedSkill);
+                return Result<string>.Failure($"Employee already has the skill '{normalizedSkill}'!");
             }
 
+            // Add to employee's skills
+            emp.Skills.Add(normalizedSkill);
+
+            // Add to company's unique skills
+            bool isNewToCompany = UniqueSkills.Add(normalizedSkill);
+
             LogAction($"Registered skill '{normalizedSkill}' for {emp.FirstName} {emp.LastName}");
-            
+
             if (isNewToCompany)
             {
                 OnEmployeeSkillRegistered(new EmployeeEventArgs(emp, $"New skill: {normalizedSkill}"));
             }
-            
+
             string message = isNewToCompany ? $"Skill '{normalizedSkill}' registered successfully (New company skill)." : $"Skill '{normalizedSkill}' registered successfully (Already exists in company).";
             return Result<string>.Success(normalizedSkill, message);
         }

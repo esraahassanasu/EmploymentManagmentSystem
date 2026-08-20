@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-namespace EmploymentManagmentSystem.Models
+
+namespace EmploymentManagmentSystem.Common
 {
     public class Result<T>
     {
