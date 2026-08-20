@@ -141,6 +141,19 @@ namespace EmploymentManagmentSystem.Helpers
                 ConsoleHelper.PrintError("Invalid date of birth (18-100 years)."); 
             } 
         }
+             public static DateTime GetValidDate(string prompt)
+        {
+            DateTime result;
+            while (true)
+            {
+                Console.Write(prompt);
+                if (DateTime.TryParse(Console.ReadLine(), out result))
+                {
+                    return result;
+                }
+                ConsoleHelper.PrintError("Invalid date format. Please enter a valid date (e.g., 01/01/2026).");
+            }
+        }
         public static bool GetYesNoResponse(string prompt) 
         { 
             string result; 

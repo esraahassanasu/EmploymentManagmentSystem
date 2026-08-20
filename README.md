@@ -1,6 +1,6 @@
-# Employee Management System
+# Employee Management System (Advanced + Bonus)
 
-A console-based C# application for managing employees, departments, onboarding workflows, manager teams, event handling, and comprehensive company reports.
+A console-based C# application for managing employees, departments, onboarding workflows, manager teams, performance ratings, leave requests, event handling, and comprehensive company reports.
 
 ## Overview
 
@@ -40,18 +40,31 @@ This project is an advanced employee management console application that simulat
 ### Advanced Filtering
 - Filter managers only (Lambda expression)
 - Filter employees by salary threshold (Lambda expression)
+- Filter top performers by rating (rating >= 4)
 - Custom EmployeeFilter delegate for flexible querying
+
+### Sorting
+- Sort employees by salary (ascending)
+- Sort employees by name (A-Z alphabetical)
 
 ### Event System
 - **EmployeeOnboarded** event - Triggered when an employee completes onboarding
 - **EmployeePromoted** event - Triggered when an employee is promoted to manager
+- **EmployeeSkillRegistered** event - Triggered when a new skill is registered for an employee (toggleable)
+- **BudgetExceeded** event - Triggered when department budget is exceeded
 - Real-time event logging with timestamps
+- Subscribe/unsubscribe from events at runtime
 
 ### Additional Features
 - Action history stack for tracking system operations
+- Command history logging for audit trail
 - Comprehensive data validation for user inputs
 - Seed data initialization for testing
 - Console helper utilities for formatted output
+- Employee rating system for performance tracking
+- Leave request management (submit and approve)
+- Generic search for any entity type (Employee, Department)
+- Real-time event subscription management
 
 ## Project Structure
 
@@ -100,13 +113,15 @@ This project is an advanced employee management console application that simulat
 
 ## Usage
 
-When the app starts, you will see an interactive menu with 24 options for managing the employee system:
+When the app starts, you will see an interactive menu with 33 options for managing the employee system:
 
 - **Options 1-4**: Department and onboarding management
 - **Options 5-6**: Team and skill management
-- **Options 7-13**: Employee search and team viewing
-- **Options 14-23**: Reports, analytics, and filtering
-- **Option 24**: Employee promotion to manager
+- **Options 7-9**: Search employees (by ID with generics, department, name)
+- **Options 10-14**: Employee viewing and filtering (all, details, by department, team, team skills)
+- **Options 15-22**: Reports and analytics (skills, salaries, department, company stats, action history, command history)
+- **Options 23-28**: Advanced filtering and sorting (managers, salary threshold, top performers, sort by salary, sort by name)
+- **Options 29-33**: Employee lifecycle (promotion, leave requests, rating, event management)
 - **Option 0**: Exit application
 
 Follow the on-screen prompts to input data and select operations.
@@ -118,19 +133,25 @@ Follow the on-screen prompts to input data and select operations.
 3. Process onboarding to activate employees (Options 3-4)
 4. Assign team members to managers (Option 5)
 5. Register additional skills for employees (Option 6)
-6. Search and view employee details (Options 7-10)
-7. Generate department and budget reports (Options 15-19)
-8. Review company statistics and action history (Options 20-21)
-9. Apply filters to find managers or high earners (Options 22-23)
-10. Promote qualified employees to managers (Option 24)
+6. Search and view employee details using generic search (Options 7-11)
+7. Update employee ratings for performance tracking (Option 32)
+8. Generate department and budget reports (Options 15-20)
+9. Review company statistics and action/command history (Options 21-22)
+10. Apply filters to find managers, high earners, or top performers (Options 24-26)
+11. Sort employees by salary or name for analysis (Options 27-28)
+12. Submit and process leave requests (Options 30-31)
+13. Promote qualified employees to managers (Option 29)
+14. Toggle skill event notifications as needed (Option 33)
 
 ## Event Handling
 
-The system publishes two key events:
-- **OnEmployeeOnboarded**: Logged when an employee is successfully onboarded
-- **OnEmployeePromoted**: Logged when an employee is promoted to manager
+The system publishes four key events:
+- **EmployeeOnboarded**: Logged when an employee is successfully onboarded
+- **EmployeePromoted**: Logged when an employee is promoted to manager
+- **EmployeeSkillRegistered**: Logged when a new skill is added to an employee (toggleable via Option 33)
+- **BudgetExceeded**: Logged when a department exceeds its budget threshold
 
-Events are subscribed in Program.cs and logged to the console for real-time tracking.
+Events are subscribed in Program.cs and logged to the console for real-time tracking. Users can dynamically toggle skill event subscriptions at runtime to control event notification behavior.
 
 ## License
 

@@ -10,21 +10,28 @@ namespace EmploymentManagmentSystem.Services
         public List<Employee> ActiveEmployees { get; private set; }
         public Dictionary<int, Department> Departments { get; private set; }
         public Queue<Employee> OnboardingQueue { get; private set; }
+        public Queue<LeaveRequest> LeaveRequestsQueue { get; private set; }
         public Stack<string> ActionHistory { get; private set; }
+        public Stack<string> CommandHistory { get; private set; }
         public HashSet<string> UniqueSkills { get; private set; }
         private Dictionary<int, Employee> _employeeLookup;
         private int _nextEmployeeId;
         private int _nextDepartmentId;
+        private decimal _budgetLimitPerDepartment = 50000;
 
         public event EventHandler<EmployeeEventArgs> EmployeeOnboarded;
         public event EventHandler<EmployeeEventArgs> EmployeePromoted;
+        public event EventHandler<EmployeeEventArgs> EmployeeSkillRegistered;
+        public event EventHandler<BudgetAlertEventArgs> BudgetExceeded;
 
         public Company()
         {
             ActiveEmployees = new List<Employee>();
             Departments = new Dictionary<int, Department>();
             OnboardingQueue = new Queue<Employee>();
+            LeaveRequestsQueue = new Queue<LeaveRequest>();
             ActionHistory = new Stack<string>();
+            CommandHistory = new Stack<string>();
             UniqueSkills = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             _employeeLookup = new Dictionary<int, Employee>();
             _nextEmployeeId = 1;
@@ -34,6 +41,11 @@ namespace EmploymentManagmentSystem.Services
         private void LogAction(string action)
         {
             ActionHistory.Push($"{DateTime.Now:HH:mm:ss} - {action}");
+        }
+
+        public void LogCommand(string command)
+        {
+            CommandHistory.Push($"{DateTime.Now:HH:mm:ss} - {command}");
         }
 
         private bool TryGetEmployee(int id, out Employee employee)
@@ -54,6 +66,27 @@ namespace EmploymentManagmentSystem.Services
             }
             return "Unknown Department";
         }
+
+
+        public T FindById<T>(int id) where T : class, IHasId
+        {
+            if (typeof(T) == typeof(Employee))
+            {
+                if (TryGetEmployee(id, out Employee emp))
+                {
+                    return emp as T;
+                }
+            }
+            else if (typeof(T) == typeof(Department))
+            {
+                if (Departments.TryGetValue(id, out Department dept))
+                {
+                    return dept as T;
+                }
+            }
+            return null;
+        }
+
 
         public Result<Department> AddDepartment(string name, string description)
         {
@@ -119,6 +152,7 @@ namespace EmploymentManagmentSystem.Services
             ActiveEmployees.Add(emp);
             LogAction($"Processed Onboarding for {emp.FirstName} {emp.LastName} (Id: {emp.Id})");
             OnEmployeeOnboarded(new EmployeeEventArgs(emp));
+            CheckDepartmentBudget(emp.DepartmentId);
             return Result<Employee>.Success(emp, $"{emp.FirstName} {emp.LastName} is now an active employee.");
         }
 
@@ -152,6 +186,7 @@ namespace EmploymentManagmentSystem.Services
 
             Manager newManager = new Manager(emp.Id, emp.FirstName, emp.LastName, emp.Email, emp.PhoneNumber, emp.DateOfBirth, emp.HireDate, emp.DepartmentId, emp.Salary);
             newManager.Skills = emp.Skills;
+            newManager.PerformanceRating = emp.PerformanceRating;
 
             ActiveEmployees.Remove(emp);
             ActiveEmployees.Add(newManager);
@@ -209,29 +244,55 @@ namespace EmploymentManagmentSystem.Services
             }
 
             LogAction($"Registered skill '{normalizedSkill}' for {emp.FirstName} {emp.LastName}");
+            
+            if (isNewToCompany)
+            {
+                OnEmployeeSkillRegistered(new EmployeeEventArgs(emp, $"New skill: {normalizedSkill}"));
+            }
+            
             string message = isNewToCompany ? $"Skill '{normalizedSkill}' registered successfully (New company skill)." : $"Skill '{normalizedSkill}' registered successfully (Already exists in company).";
             return Result<string>.Success(normalizedSkill, message);
         }
 
-        public Employee FindEmployeeById(int id)
-        {
-            if (TryGetEmployee(id, out Employee employee))
-            {
-                return employee;
-            }
-            return null;
-        }
+        public Result<LeaveRequest> SubmitLeaveRequest(int employeeId, DateTime startDate, DateTime endDate, string reason)
+{
+    if (!TryGetEmployee(employeeId, out Employee emp))
+    {
+        return Result<LeaveRequest>.Failure("Employee not found!");
+    }
 
-        public Employee FindEmployeeByName(string firstName, string lastName)
+    if (startDate >= endDate)
+    {
+        return Result<LeaveRequest>.Failure("Start date must be before end date!");
+    }
+   
+    if (startDate.Date < DateTime.Today)
+    {
+        return Result<LeaveRequest>.Failure("Leave start date cannot be in the past! Please enter a future date.");
+    }
+
+    if (endDate.Date < DateTime.Today)
+    {
+        return Result<LeaveRequest>.Failure("Leave end date cannot be in the past! Please enter a future date.");
+    }
+
+    LeaveRequest request = new LeaveRequest(employeeId, $"{emp.FirstName} {emp.LastName}", startDate, endDate, reason);
+    LeaveRequestsQueue.Enqueue(request);
+    LogAction($"Leave request submitted by {emp.FirstName} {emp.LastName} from {startDate:dd/MM/yyyy} to {endDate:dd/MM/yyyy}");
+    return Result<LeaveRequest>.Success(request, "Leave request submitted successfully.");
+}
+
+        public Result<LeaveRequest> ApproveNextLeaveRequest()
         {
-            foreach (var emp in ActiveEmployees)
+            if (LeaveRequestsQueue.Count == 0)
             {
-                if (emp.FirstName.Equals(firstName, StringComparison.OrdinalIgnoreCase) && emp.LastName.Equals(lastName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return emp;
-                }
+                return Result<LeaveRequest>.Failure("No pending leave requests!");
             }
-            return null;
+
+            LeaveRequest request = LeaveRequestsQueue.Dequeue();
+            request.IsApproved = true;
+            LogAction($"Approved leave request for {request.EmployeeName}");
+            return Result<LeaveRequest>.Success(request, $"Leave request for {request.EmployeeName} approved.");
         }
 
         public List<Employee> FilterEmployees(EmployeeFilter filter)
@@ -247,6 +308,83 @@ namespace EmploymentManagmentSystem.Services
             return result;
         }
 
+        public void SortEmployees(EmployeeComparer comparer)
+        {
+            for (int i = 0; i < ActiveEmployees.Count - 1; i++)
+            {
+                for (int j = 0; j < ActiveEmployees.Count - i - 1; j++)
+                {
+                    if (comparer(ActiveEmployees[j], ActiveEmployees[j + 1]) > 0)
+                    {
+                        Employee temp = ActiveEmployees[j];
+                        ActiveEmployees[j] = ActiveEmployees[j + 1];
+                        ActiveEmployees[j + 1] = temp;
+                    }
+                }
+            }
+        }
+
+
+        private void CheckDepartmentBudget(int departmentId)
+        {
+            decimal totalBudget = 0;
+            foreach (var emp in ActiveEmployees)
+            {
+                if (emp.DepartmentId == departmentId)
+                {
+                    totalBudget += emp.Salary;
+                }
+            }
+
+            if (totalBudget > _budgetLimitPerDepartment)
+            {
+                string deptName = GetDepartmentName(departmentId);
+                OnBudgetExceeded(new BudgetAlertEventArgs(departmentId, deptName, totalBudget, _budgetLimitPerDepartment));
+            }
+        }
+
+        protected virtual void OnEmployeeOnboarded(EmployeeEventArgs e)
+        {
+            EmployeeOnboarded?.Invoke(this, e);
+        }
+
+        protected virtual void OnEmployeePromoted(EmployeeEventArgs e)
+        {
+            EmployeePromoted?.Invoke(this, e);
+        }
+
+        protected virtual void OnEmployeeSkillRegistered(EmployeeEventArgs e)
+        {
+            EmployeeSkillRegistered?.Invoke(this, e);
+        }
+
+        protected virtual void OnBudgetExceeded(BudgetAlertEventArgs e)
+        {
+            BudgetExceeded?.Invoke(this, e);
+        }
+
+        public Employee FindEmployeeById(int id)
+        {
+            return FindById<Employee>(id);
+        }
+
+        public Department FindDepartmentById(int id)
+        {
+            return FindById<Department>(id);
+        }
+
+        public Employee FindEmployeeByName(string firstName, string lastName)
+        {
+            foreach (var emp in ActiveEmployees)
+            {
+                if (emp.FirstName.Equals(firstName, StringComparison.OrdinalIgnoreCase) && emp.LastName.Equals(lastName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return emp;
+                }
+            }
+            return null;
+        }
+
         public void DisplayAllEmployees()
         {
             ConsoleHelper.PrintHeader("All Active Employees");
@@ -259,7 +397,7 @@ namespace EmploymentManagmentSystem.Services
             foreach (var emp in ActiveEmployees)
             {
                 string role = emp is Manager ? "[Manager]" : "[Employee]";
-                Console.WriteLine($"[{emp.Id}] {role} {emp.FirstName} {emp.LastName} - {GetDepartmentName(emp.DepartmentId)} - {emp.Salary:C}");
+                Console.WriteLine($"[{emp.Id}] {role} {emp.FirstName} {emp.LastName} - {GetDepartmentName(emp.DepartmentId)} - {emp.Salary:C} - Rating: {emp.PerformanceRating}");
             }
         }
 
@@ -280,6 +418,7 @@ namespace EmploymentManagmentSystem.Services
             Console.WriteLine($"Department: {GetDepartmentName(emp.DepartmentId)}");
             Console.WriteLine($"Salary: {emp.Salary:C}");
             Console.WriteLine($"Status: {emp.Status}");
+            Console.WriteLine($"Performance Rating: {emp.PerformanceRating}/5");
 
             if (emp.Skills != null && emp.Skills.Count > 0)
             {
@@ -538,7 +677,13 @@ namespace EmploymentManagmentSystem.Services
             Console.WriteLine($"Department: {deptName}");
             Console.WriteLine($"Total Employees: {employeeCount}");
             Console.WriteLine($"Total Budget: {totalBudget:C}");
+            Console.WriteLine($"Budget Limit: {_budgetLimitPerDepartment:C}");
             Console.WriteLine($"Average Salary: {(employeeCount > 0 ? totalBudget / employeeCount : 0):C}");
+            
+            if (totalBudget > _budgetLimitPerDepartment)
+            {
+                ConsoleHelper.PrintWarning($"️ WARNING: Budget exceeded by {totalBudget - _budgetLimitPerDepartment:C}!");
+            }
         }
 
         public void DisplayAllDepartmentsBudget()
@@ -570,10 +715,32 @@ namespace EmploymentManagmentSystem.Services
                 Console.WriteLine($"\n[{dept.Id}] {dept.Name}");
                 Console.WriteLine($"  Employees: {employeeCount}");
                 Console.WriteLine($"  Budget: {deptBudget:C}");
+                
+                if (deptBudget > _budgetLimitPerDepartment)
+                {
+                    ConsoleHelper.PrintWarning($"   OVER BUDGET!");
+                }
             }
 
             Console.WriteLine($"\n=================================");
             Console.WriteLine($"Total Company Budget: {companyTotalBudget:C}");
+        }
+
+        public void DisplayTopPerformers()
+        {
+            ConsoleHelper.PrintHeader("Top Performers (Rating >= 4)");
+            List<Employee> topPerformers = FilterEmployees(e => e.PerformanceRating >= 4);
+            
+            if (topPerformers.Count == 0)
+            {
+                Console.WriteLine("No top performers found.");
+                return;
+            }
+
+            foreach (var emp in topPerformers)
+            {
+                Console.WriteLine($"- {emp.FirstName} {emp.LastName} (Rating: {emp.PerformanceRating}/5)");
+            }
         }
 
         public void DisplayCompanyStatistics()
@@ -583,6 +750,7 @@ namespace EmploymentManagmentSystem.Services
             Console.WriteLine($"  Total Departments: {Departments.Count}");
             Console.WriteLine($"  Total Active Employees: {ActiveEmployees.Count}");
             Console.WriteLine($"  Employees in Onboarding: {OnboardingQueue.Count}");
+            Console.WriteLine($"  Pending Leave Requests: {LeaveRequestsQueue.Count}");
             Console.WriteLine($"  Total Unique Skills: {UniqueSkills.Count}");
             Console.WriteLine($"  Total Actions Recorded: {ActionHistory.Count}");
 
@@ -619,6 +787,7 @@ namespace EmploymentManagmentSystem.Services
                 Console.WriteLine($"  Average Salary: {averageSalary:C}");
                 Console.WriteLine($"  Minimum Salary: {minSalary:C}");
                 Console.WriteLine($"  Maximum Salary: {maxSalary:C}");
+                Console.WriteLine($"  Budget Limit per Dept: {_budgetLimitPerDepartment:C}");
             }
 
             Console.WriteLine($"\n Department Statistics:");
@@ -658,14 +827,41 @@ namespace EmploymentManagmentSystem.Services
             Console.WriteLine($"\nTotal Actions: {ActionHistory.Count}");
         }
 
-        protected virtual void OnEmployeeOnboarded(EmployeeEventArgs e)
+        public void DisplayCommandHistory()
         {
-            EmployeeOnboarded?.Invoke(this, e);
+            ConsoleHelper.PrintHeader("Your Command History (Newest First)");
+            if (CommandHistory.Count == 0)
+            {
+                Console.WriteLine("No commands recorded.");
+                return;
+            }
+
+            int counter = 1;
+            foreach (var cmd in CommandHistory)
+            {
+                Console.WriteLine($"{counter}. {cmd}");
+                counter++;
+            }
+            Console.WriteLine($"\nTotal Commands: {CommandHistory.Count}");
         }
 
-        protected virtual void OnEmployeePromoted(EmployeeEventArgs e)
+        public void UpdateEmployeeRating(int employeeId, int newRating)
         {
-            EmployeePromoted?.Invoke(this, e);
+            if (!TryGetEmployee(employeeId, out Employee emp))
+            {
+                ConsoleHelper.PrintError("Employee not found!");
+                return;
+            }
+
+            if (newRating < 1 || newRating > 5)
+            {
+                ConsoleHelper.PrintError("Rating must be between 1 and 5!");
+                return;
+            }
+
+            emp.PerformanceRating = newRating;
+            LogAction($"Updated rating for {emp.FirstName} {emp.LastName} to {newRating}");
+            ConsoleHelper.PrintSuccess($"Rating updated successfully.");
         }
 
         public void SeedData()
@@ -695,6 +891,12 @@ namespace EmploymentManagmentSystem.Services
             RegisterSkill(3, "Budget Planning");
             RegisterSkill(4, "c#");
             RegisterSkill(1, "leadership");
+            
+            UpdateEmployeeRating(1, 5);
+            UpdateEmployeeRating(2, 4);
+            UpdateEmployeeRating(3, 3);
+            UpdateEmployeeRating(4, 5);
+            
             ConsoleHelper.PrintSuccess("Seed data loaded successfully!");
         }
     }
